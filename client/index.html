@@ -4,8 +4,8 @@
     <title>Random Drawing Entry Form</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      form { width: 30%; margin: 4em auto; }
-      input { width: 100%; margin: 0.5em; font-size: 2em; }
+      form { margin: 4em auto; }
+      input { width: 80%; margin: 0.5em 10%; font-size: 2em; }
       input[type=submit] { background: rgb(130, 224, 255); border: 1px solid rgb(130, 224, 255); padding: 1em 2em; }
       input[type=submit]:hover { background: rgb(100, 204, 235); border: 1px solid rgb(130, 130, 130); cursor: pointer; }
     </style>
@@ -17,7 +17,7 @@
     </form>
 
     <p id='result'></p>
-    
+
     <script src="socket.io.js"></script>
     <script>
       (function() {
@@ -38,7 +38,7 @@
           e.preventDefault();
 
           socket.emit('chooseme', document.querySelector('#name').value || 'anon');
-          
+
           return false;
         });
       })();

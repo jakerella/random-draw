@@ -2,48 +2,16 @@
 var express = require('express'),
     app = express(),
     http = require('http').Server(app),
+    routes = require('./routes'),
+    sockets = require('./sockets'),
     io = require('socket.io')(http),
-    port = process.env.PORT || 8686,
-    connections = {};
+    port = process.env.PORT || 8686;
 
-app.use(express.static(__dirname + '/client'));
+// Set up non-static routes
+routes(app);
 
-app.get('/', function(req, res){
-  res.sendFile(__dirname + '/client/index.html');
-});
-
-app.get('/choose', function(req, res){
-  res.sendFile(__dirname + '/client/choose.html');
-});
-
-app.get('/random', function(req, res){
-  res.end('me!');
-});
-
-
-io.on('connection', function(socket) {
-  console.log('User ' + socket.id + ' connected...');
-
-  connections[socket.id] = {
-    socket: socket,
-    name: null
-  };
-
-  socket.on('disconnect', function() {
-    console.log('...user ' + socket.id + ' disconnected.');
-
-    delete connections[socket.id];
-  });
-
-  socket.on('chooseme', function(name) {
-    console.log(socket.id + ' entered the drawing as ' + name);
-
-    if (connections[socket.id]) {
-      connections[socket.id].name = name;
-      socket.emit('entered');
-    }
-  });
-});
+// Set up all socket connections
+sockets(io);
 
 http.listen(port, function(){
   console.log('Random draw server listening on ' + port);
