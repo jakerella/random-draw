@@ -15,22 +15,24 @@
       <h1>And the winner is...</h1>
       <p id='result'></p>
 
-      <button id='pick'>Choose</button>
+      <button id='pick' disabled='disabled'>Choose</button>
     </div>
 
+    <script src="socket.io.js"></script>
     <script>
       (function() {
-        document.querySelector('#pick').addEventListener('click', function(e) {
+        var socket = io(),
+            btn = document.querySelector('#pick');
+
+        socket.on('connect', function() {
+          console.log('Connected to the server!', socket.id);
+          btn.disabled = '';
+        });
+
+        btn.addEventListener('click', function(e) {
           e.preventDefault();
-          var r = new XMLHttpRequest();
-          r.open('GET', '/random', true);
-          r.onreadystatechange = function () {
-            if (r.readyState === 4 && r.status === 200) {
-              console.log('Success: ' + r.responseText);
-              document.querySelector('#result').innerHTML = r.responseText;
-            }
-          };
-          r.send();
+
+        //   socket.emit('draw');
         });
       })();
     </script>

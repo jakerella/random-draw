@@ -37,7 +37,7 @@
         document.querySelector('form').addEventListener('submit', function(e) {
           e.preventDefault();
 
-          socket.emit('chooseme', document.querySelector('#name').value || 'anon');
+          socket.emit('enter', document.querySelector('#name').value || 'anon');
 
           return false;
         });
