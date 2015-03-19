@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Random Drawing Entry Form</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      #main { width: 50%; margin: 4em auto; font-size: 2em; text-align: center; }
+      #result { height: 1.5em; }
+      button { width: 100%; font-size: 1.5em; background: rgb(130, 224, 255); border: 1px solid rgb(130, 224, 255); padding: 1em 2em; }
+      button:hover { background: rgb(100, 204, 235); border: 1px solid rgb(130, 130, 130); cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div id='main'>
+      <h1>And the winner is...</h1>
+      <p id='result'></p>
+
+      <button id='pick'>Choose</button>
+    </div>
+
+    <script>
+      (function() {
+        document.querySelector('#pick').addEventListener('click', function(e) {
+          e.preventDefault();
+          var r = new XMLHttpRequest();
+          r.open('GET', '/random', true);
+          r.onreadystatechange = function () {
+            if (r.readyState === 4 && r.status === 200) {
+              console.log('Success: ' + r.responseText);
+              document.querySelector('#result').innerHTML = r.responseText;
+            }
+          };
+          r.send();
+        });
+      })();
+    </script>
+
+  </body>
+</html>

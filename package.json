@@ -1,0 +1,24 @@
+{
+  "name": "random-draw",
+  "version": "0.0.1",
+  "description": "Live random drawing app",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jakerella/random-draw.git"
+  },
+  "keywords": [
+    "random",
+    "live",
+    "drawing",
+    "contest",
+    "giveaway",
+    "raffle"
+  ],
+  "author": "Jordan Kasper (jordan@jordankasper.com)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.12.3",
+    "socket.io": "^1.3.5"
+  }
+}
