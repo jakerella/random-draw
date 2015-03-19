@@ -3,6 +3,7 @@ var express = require('express'),
     app = express(),
     http = require('http').Server(app),
     io = require('socket.io')(http),
+    port = process.env.PORT || 8686,
     connections = {};
 
 app.use(express.static(__dirname + '/client'));
@@ -44,6 +45,6 @@ io.on('connection', function(socket) {
   });
 });
 
-http.listen(8686, function(){
-  console.log('listening on *:8686');
+http.listen(port, function(){
+  console.log('Random draw server listening on ' + port);
 });
