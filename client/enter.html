@@ -5,17 +5,18 @@
     <link rel='stylesheet' href='style.css'>
   </head>
   <body>
-    <h1>And the winner is...</h1>
+    <p class='messages'></p>
     
-    <h2 class='messages'></h2>
-
-    <input type='button' class='draw' value='Draw'>
+    <form action=''>
+      <input type='text' name='entrant-name' placeholder='My name is...'><br>
+      <input type='submit' value='Choose Me!'>
+    </form>
 
     <script src="socket.io.js"></script>
     <script src="jqlite.js"></script>
     <script src="app.js"></script>
     <script>
-    rdw.initChoose();
+    rdw.initEnter();
     </script>
 
   </body>

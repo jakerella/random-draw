@@ -1,0 +1,47 @@
+html,body,div,p,h1,h2,h3 {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+h1, h2 {
+    text-align: center;
+    margin: 0.5em;
+}
+
+
+form {
+    margin: 4em auto;
+}
+input {
+    width: 80%;
+    margin: 0.5em 10%;
+    font-size: 2em;
+}
+[type=submit], [type=button] {
+    background: rgb(130, 224, 255);
+    border: 1px solid rgb(130, 224, 255);
+    padding: 1em 2em;
+}
+[type=submit]:hover, [type=button]:hover {
+    background: rgb(100, 204, 235);
+    border: 1px solid rgb(130, 130, 130);
+    cursor: pointer;
+}
+
+
+.messages {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+}
+.error {
+    color: #933;
+}
+.success {
+    color: #393;
+}
+.info {
+    color: #339;
+}
