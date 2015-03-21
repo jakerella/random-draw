@@ -128,10 +128,13 @@ function registerDrawer(uid) {
         
         console.log('New user in drawers: ' + uid);
         
-        if (drawer && drawer !== uid) {
+        if (drawer && drawer.uid !== uid) {
             socket.emit('problem', 'Sorry, but someone else is already drawing.');
         } else {
-            drawer = uid;
+            drawer = {
+                uid: uid,
+                socket: socket
+            };
             socket.emit('power', uid);
             console.log(uid + ' has the power!');
         }
@@ -152,7 +155,7 @@ function selectWinner(uid, count) {
         keys = Object.keys(entrants),
         winner = Math.floor(Math.random() * keys.length);
     
-    if (uid !== drawer) {
+    if (uid !== drawer.uid) {
         return socket.emit('problem', 'You have no power here.');
     }
     
@@ -192,6 +195,10 @@ function disconnect() {
     if (existingKey) {
         socket.to('drawers').emit('remove', getClientData(entrants[existingKey]));
         entrants[existingKey].connected = false;
+    }
+    
+    if (drawer && drawer.socket.id === socket.id) {
+        drawer = null;
     }
 }
 
