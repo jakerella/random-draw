@@ -1,6 +1,7 @@
 
 window.rdw = (function(app, $) {
     var storeKey = 'random-draw-entry',
+        drawerKey = 'random-drawer';
         socket = io(),
         ui = {
             msg: $('.messages')
@@ -43,15 +44,26 @@ window.rdw = (function(app, $) {
         });
     }
     
-    function initChoose() {
+    function initDraw() {
+        var winner = $('.winner'),
+            uid = localStorage.getItem(drawerKey);
+        
+        socket.emit('ihavethepower', uid || null);
+        
         $('.draw').on('click', function(e) {
             e.preventDefault();
-            socket.emit('draw');
+            socket.emit('draw', uid);
         });
         
         socket.on('winner', function(name) {
-            addMessage(name, 'success');
+            winner.text(name);
         });
+        
+        socket.on('power', function(powerUid) {
+            uid = powerUid;
+            localStorage.setItem(drawerKey, uid);
+            $('.draw').css('display', 'inline-block');
+        })
     }
     
     function addMessage(msg, cls) {
@@ -63,7 +75,7 @@ window.rdw = (function(app, $) {
 
     return {
         initEnter: initEnter,
-        initChoose: initChoose,
+        initDraw: initDraw,
         addMessage: addMessage
     };
 

@@ -1,6 +1,7 @@
 
 var selectLimit = 10,
     crypto = require('crypto'),
+    drawer = null,
     entrants = {};
 
 module.exports = function setupSockets(io) {
@@ -9,26 +10,16 @@ module.exports = function setupSockets(io) {
         connect(socket);
         socket.on('disconnect', disconnect);
         socket.on('enter', enterDrawing);
-        socket.on('draw', selectWinner);
         socket.on('update', updateEntrant);
+        
+        socket.on('ihavethepower', registerDrawer);
+        socket.on('draw', selectWinner);
     });
 
 };
 
-function connect(socket) {
-    console.log(socket.id + ' connected.');
-}
 
-function disconnect() {
-    var socket = this,
-        existingKey = findKey(socket.id, 'socket');
-
-    console.log(socket.id + ' disconnected.');
-
-    if (existingKey) {
-        entrants[existingKey].connected = false;
-    }
-}
+// --------------- CONTEST ENTRANTS --------------- //
 
 function enterDrawing(name) {
     var existingKey,
@@ -72,10 +63,7 @@ function enterDrawing(name) {
             return console.error(err);
         }
         
-        var uid = crypto
-            .createHash('sha1')
-            .update(name + (new Date()).getTime(), 'utf8')
-            .digest('hex');
+        var uid = getUid(socket.id);
         
         entrants[uid] = {
             uid: uid,
@@ -87,26 +75,6 @@ function enterDrawing(name) {
         console.log(uid + ' was entered in the drawing as ' + name);
         socket.emit('entered', getClientData(entrants[uid]));
     });
-}
-
-function selectWinner(count) {
-    var socket = this,
-        keys = Object.keys(entrants),
-        winner = Math.floor(Math.random() * keys.length);
-    
-    if (!keys.length) {
-        return socket.emit('problem', 'NO ENTRANTS!');
-    }
-    
-    count = count || 0;
-    
-    if (entrants[keys[winner]] && 
-        entrants[keys[winner]].connected && 
-        entrants[keys[winner]].name) {
-        socket.emit('winner', entrants[keys[winner]].name);
-    } else if (count < Math.min(selectLimit, keys.length)) {
-        selectWinner.apply(socket, [count++]);
-    }
 }
 
 function updateEntrant(uid, data) {
@@ -136,6 +104,81 @@ function updateEntrant(uid, data) {
             console.log(uid + ' rejoined /entrants');
         });
     }
+}
+
+
+// --------------- DRAWING A WINNER --------------- //
+
+function registerDrawer(uid) {
+    var socket = this,
+        uid = uid || getUid(socket.id);
+    
+    socket.join('drawers', function(err) {
+        if (err) {
+            console.log('Unable to add ' + socket.id + ' to /drawers!');
+            socket.emit('problem', 'Sorry, but I was unable to add you to the drawers room. :(');
+            return console.error(err);
+        }
+        
+        console.log('New user in drawers: ' + uid);
+        
+        if (drawer && drawer !== uid) {
+            socket.emit('problem', 'Sorry, but someone else is already drawing.');
+        } else {
+            drawer = uid;
+            socket.emit('power', uid);
+            console.log(uid + ' has the power!');
+        }
+    });
+}
+
+function selectWinner(uid, count) {
+    var socket = this,
+        keys = Object.keys(entrants),
+        winner = Math.floor(Math.random() * keys.length);
+    
+    if (uid !== drawer) {
+        return socket.emit('problem', 'You have no power here.');
+    }
+    
+    if (!keys.length) {
+        return socket.emit('problem', 'NO ENTRANTS!');
+    }
+    
+    count = count || 0;
+    
+    if (entrants[keys[winner]] && 
+        entrants[keys[winner]].connected && 
+        entrants[keys[winner]].name) {
+        socket.emit('winner', entrants[keys[winner]].name);
+    } else if (count < Math.min(selectLimit, keys.length)) {
+        selectWinner.apply(socket, [uid, count++]);
+    }
+}
+
+
+// ------------------- HELPERS -------------------- //
+
+function connect(socket) {
+    console.log(socket.id + ' connected.');
+}
+
+function disconnect() {
+    var socket = this,
+        existingKey = findKey(socket.id, 'socket');
+
+    console.log(socket.id + ' disconnected.');
+
+    if (existingKey) {
+        entrants[existingKey].connected = false;
+    }
+}
+
+function getUid(seed) {
+    return crypto
+        .createHash('sha1')
+        .update(seed + (new Date()).getTime(), 'utf8')
+        .digest('hex');
 }
 
 function getClientData(entrant) {
