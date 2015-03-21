@@ -4,7 +4,10 @@ window.rdw = (function(app, $) {
         drawerKey = 'random-drawer';
         socket = io(),
         ui = {
-            msg: $('.messages')
+            msg: $('.messages'),
+            name: $('[name="entrant-name"]'),
+            drawBtn: $('.draw'),
+            entrants: $('.entrants')
         };
     
     socket.on('connect', initConnect);
@@ -16,7 +19,7 @@ window.rdw = (function(app, $) {
         
         if (entry && document.location.pathname === '/') {
             data = JSON.parse(entry);
-            $('[name="entrant-name"]')[0].value = data.name || '';
+            ui.name.val(data.name || '');
             socket.emit('update', data.uid);
             console.info('Socket for ' + data.uid + ' updated');
         } else {
@@ -39,7 +42,7 @@ window.rdw = (function(app, $) {
         
         $('form').on('submit', function(e) {
             e.preventDefault();
-            socket.emit('enter', $('[name="entrant-name"]')[0].value);
+            socket.emit('enter', ui.name.val());
             return false;
         });
     }
@@ -50,10 +53,13 @@ window.rdw = (function(app, $) {
         
         socket.emit('ihavethepower', uid || null);
         
-        $('.draw').on('click', function(e) {
+        ui.drawBtn.on('click', function(e) {
             e.preventDefault();
             socket.emit('draw', uid);
         });
+        
+        socket.on('entry', addEntrantUI);
+        socket.on('remove', removeEntrantUI);
         
         socket.on('winner', function(name) {
             winner.text(name);
@@ -62,8 +68,33 @@ window.rdw = (function(app, $) {
         socket.on('power', function(powerUid) {
             uid = powerUid;
             localStorage.setItem(drawerKey, uid);
-            $('.draw').css('display', 'inline-block');
+            ui.drawBtn.css('display', 'inline-block');
         })
+    }
+    
+    function addEntrantUI(data) {
+        var entrant;
+        
+        data = (typeof data === 'string' && JSON.parse(data)) || data;
+        
+        if (data.splice) {
+            return data.forEach(function(value) {
+                addEntrantUI(value);
+            });
+        }
+        
+        entrant = $('[data-uid="' + data.uid + '"]');
+        
+        if (entrant.length) {
+            entrant.text(data.name);
+        } else {
+            ui.entrants.append('<li data-uid="' + data.uid + '">' + data.name + '</li>');
+        }
+    }
+    
+    function removeEntrantUI(data) {
+        data = (typeof data === 'string' && JSON.parse(data)) || data;
+        $('[data-uid="' + data.uid + '"]').remove();
     }
     
     function addMessage(msg, cls) {

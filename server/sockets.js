@@ -63,7 +63,8 @@ function enterDrawing(name) {
             return console.error(err);
         }
         
-        var uid = getUid(socket.id);
+        var data,
+            uid = getUid(socket.id);
         
         entrants[uid] = {
             uid: uid,
@@ -72,8 +73,11 @@ function enterDrawing(name) {
             name: name
         };
         
+        data = getClientData(entrants[uid]);
+        
         console.log(uid + ' was entered in the drawing as ' + name);
-        socket.emit('entered', getClientData(entrants[uid]));
+        socket.emit('entered', data);
+        socket.to('drawers').emit('entry', data);
     });
 }
 
@@ -120,6 +124,8 @@ function registerDrawer(uid) {
             return console.error(err);
         }
         
+        var key, entrantData = [];
+        
         console.log('New user in drawers: ' + uid);
         
         if (drawer && drawer !== uid) {
@@ -128,6 +134,15 @@ function registerDrawer(uid) {
             drawer = uid;
             socket.emit('power', uid);
             console.log(uid + ' has the power!');
+        }
+        
+        for (key in entrants) {
+            if (entrants.hasOwnProperty(key)) {
+                entrantData.push(getClientData(entrants[key]));
+            }
+        }
+        if (entrantData.length) {
+            socket.emit('entry', entrantData);
         }
     });
 }
@@ -170,6 +185,7 @@ function disconnect() {
     console.log(socket.id + ' disconnected.');
 
     if (existingKey) {
+        socket.to('drawers').emit('remove', getClientData(entrants[existingKey]));
         entrants[existingKey].connected = false;
     }
 }
