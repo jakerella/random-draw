@@ -1,5 +1,6 @@
 
-var crypto = require('crypto'),
+var selectLimit = 10,
+    crypto = require('crypto'),
     entrants = {};
 
 module.exports = function setupSockets(io) {
@@ -88,12 +89,24 @@ function enterDrawing(name) {
     });
 }
 
-function selectWinner() {
+function selectWinner(count) {
     var socket = this,
         keys = Object.keys(entrants),
         winner = Math.floor(Math.random() * keys.length);
     
-    socket.emit('winner', (entrants[keys[winner]] && entrants[keys[winner]].name) || 'TRY AGAIN');
+    if (!keys.length) {
+        return socket.emit('problem', 'NO ENTRANTS!');
+    }
+    
+    count = count || 0;
+    
+    if (entrants[keys[winner]] && 
+        entrants[keys[winner]].connected && 
+        entrants[keys[winner]].name) {
+        socket.emit('winner', entrants[keys[winner]].name);
+    } else if (count < Math.min(selectLimit, keys.length)) {
+        selectWinner.apply(socket, [count++]);
+    }
 }
 
 function updateEntrant(uid, data) {

@@ -13,7 +13,7 @@ window.rdw = (function(app, $) {
         var data = {},
             entry = localStorage.getItem(storeKey);
         
-        if (entry) {
+        if (entry && document.location.pathname === '/') {
             data = JSON.parse(entry);
             $('[name="entrant-name"]')[0].value = data.name || '';
             socket.emit('update', data.uid);
