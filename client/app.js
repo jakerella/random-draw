@@ -1,14 +1,17 @@
 
-window.rdw = (function(app, $) {
+window.rdw = (function(app, $, AudioContext) {
     var storeKey = 'random-draw-entry',
         drawerKey = 'random-drawer';
         socket = io(),
+        sounds = {},
         ui = {
             msg: $('.messages'),
             name: $('[name="entrant-name"]'),
             drawBtn: $('.draw'),
             entrants: $('.entrants')
         };
+    
+    checkBrowser();
     
     socket.on('connect', initConnect);
     socket.on('problem', addMessage);
@@ -28,6 +31,8 @@ window.rdw = (function(app, $) {
     }
     
     function initEnter() {
+        downloadAudio('cheer.wav');
+        
         socket.on('entered', function(data) {
             localStorage.setItem(storeKey, data);
             addMessage('You were entered!', 'success');
@@ -42,6 +47,7 @@ window.rdw = (function(app, $) {
         
         socket.on('win', function() {
             addMessage('YOU WON!', 'success');
+            playAudio('cheer.wav');
         });
         
         $('form').on('submit', function(e) {
@@ -107,6 +113,47 @@ window.rdw = (function(app, $) {
             .text(msg)
             .addClass(cls || 'error');
     }
+    
+    function downloadAudio(url, cb) {
+        // No point in downloading audio if we can't us it.
+        audio = AudioContext && new AudioContext();
+        if (audio) {
+            var req = new XMLHttpRequest();
+            req.open('GET', url, true);
+            req.responseType = 'arraybuffer';
+
+            req.onload = function() {
+                audio.decodeAudioData(
+                    req.response,
+                    function(buffer) {
+                        sounds[url] = buffer;
+                        cb && cb(null, buffer);
+                    },
+                    function(err) {
+                        console.warn('Unable to decode audio file:', url);
+                        cb(err);
+                    }
+                );
+            };
+            req.send();
+        }
+    }
+    
+    function playAudio(url) {
+        audio = AudioContext && new AudioContext();
+        if (audio && sounds[url]) {
+            var source = audio.createBufferSource();
+            source.buffer = sounds[url];
+            source.connect(audio.destination);
+            source.start(0);
+        }
+    }
+    
+    function checkBrowser() {
+        if (!localStorage) {
+            alert('Sorry! Your browser doesn\'t appear to support what we need. :(');
+        }
+    }
 
     return {
         initEnter: initEnter,
@@ -114,4 +161,8 @@ window.rdw = (function(app, $) {
         addMessage: addMessage
     };
 
-})(window.rdw || {}, window.jqlite);
+})(
+    window.rdw || {},
+    window.jqlite,
+    window.AudioContext || window.webkitAudioContext
+);
