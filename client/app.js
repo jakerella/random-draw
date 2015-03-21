@@ -1,19 +1,39 @@
 
 window.rdw = (function(app, $) {
-    var socket = io(),
+    var storeKey = 'random-draw-entry',
+        socket = io(),
         ui = {
             msg: $('.messages')
         };
     
-    socket.on('connect', function() {
-        console.info('User ' + socket.id + ' is connected to the server!');
-    });
-    
+    socket.on('connect', initConnect);
     socket.on('problem', addMessage);
     
+    function initConnect() {
+        var data = {},
+            entry = localStorage.getItem(storeKey);
+        
+        if (entry) {
+            data = JSON.parse(entry);
+            $('[name="entrant-name"]')[0].value = data.name || '';
+            socket.emit('update', data.uid);
+            console.info('Socket for ' + data.uid + ' updated');
+        } else {
+            console.info('Socket ' + socket.id + ' is connected to the server!');
+        }
+    }
+    
     function initEnter() {
-        socket.on('entered', function() {
+        socket.on('entered', function(data) {
+            localStorage.setItem(storeKey, data);
             addMessage('You were entered!', 'success');
+            console.info('Entered in contest', data);
+        });
+        
+        socket.on('updated', function(data) {
+            localStorage.setItem(storeKey, data);
+            addMessage('Your name was updated!', 'success');
+            console.info('Updated entrant', data);
         });
         
         $('form').on('submit', function(e) {
