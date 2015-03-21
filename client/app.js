@@ -40,6 +40,10 @@ window.rdw = (function(app, $) {
             console.info('Updated entrant', data);
         });
         
+        socket.on('win', function() {
+            addMessage('YOU WON!', 'success');
+        });
+        
         $('form').on('submit', function(e) {
             e.preventDefault();
             socket.emit('enter', ui.name.val());

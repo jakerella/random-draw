@@ -165,9 +165,14 @@ function selectWinner(uid, count) {
     if (entrants[keys[winner]] && 
         entrants[keys[winner]].connected && 
         entrants[keys[winner]].name) {
+        
         socket.emit('winner', entrants[keys[winner]].name);
+        entrants[keys[winner]].socket.emit('win');
+    
     } else if (count < Math.min(selectLimit, keys.length)) {
+        
         selectWinner.apply(socket, [uid, count++]);
+        
     }
 }
 
