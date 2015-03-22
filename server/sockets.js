@@ -29,6 +29,8 @@ function enterDrawing(name) {
         socket.emit('problem', 'Please submit your name to enter!');
         return console.log('Unable to enter user with no name (' + socket.id + ')');
     }
+    
+    name = name.toLowerCase();
 
     existingKey = findKey(name, 'name');
     
