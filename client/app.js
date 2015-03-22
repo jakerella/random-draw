@@ -48,6 +48,7 @@ window.rdw = (function(app, $, AudioContext) {
         socket.on('win', function() {
             addMessage('YOU WON!', 'success');
             playAudio('cheer.wav');
+            vibrate();
         });
         
         $('form').on('submit', function(e) {
@@ -146,6 +147,13 @@ window.rdw = (function(app, $, AudioContext) {
             source.buffer = sounds[url];
             source.connect(audio.destination);
             source.start(0);
+        }
+    }
+    
+    function vibrate(pattern) {
+        pattern = pattern || [400, 150, 400, 150, 400];
+        if (navigator['vibrate']) {
+            navigator.vibrate(pattern);
         }
     }
     
