@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Random Drawing Setup Form</title>
+    <link rel='stylesheet' href='/style.css'>
+  </head>
+  <body>
+    <p class='messages'></p>
+    
+    <h1>Drawing Setup</h1>
+    
+    <form action=''>
+        
+        <input type='text' name='name' placeholder='Event Name'><br>
+        <input type='text' name='path' placeholder='Unique URL path' required><br>
+        <input type='text' name='item' placeholder='Item to give away'><br>
+        
+        <input type='submit' class='create' value='Create Drawing'>
+    
+    </form>
+
+    <script src="/socket.io.js"></script>
+    <script src="/jqlite.js"></script>
+    <script src="/app.js"></script>
+    <script>
+    rdw.initSetup();
+    </script>
+
+  </body>
+</html>

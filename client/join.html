@@ -1,25 +1,17 @@
 <!doctype html>
 <html>
   <head>
-    <title>Random Drawing Selection</title>
+    <title>Random Drawing</title>
     <link rel='stylesheet' href='/style.css'>
   </head>
   <body>
     <p class='messages'></p>
     
-    <h1>And the winner is...</h1>
-    
-    <h2 class='winner success'></h2>
-
-    <input type='button' class='draw' value='Draw' style='display:none;'>
-    
-    <ul class='entrants'></ul>
-
     <script src="/socket.io.js"></script>
     <script src="/jqlite.js"></script>
     <script src="/app.js"></script>
     <script>
-    rdw.initDraw();
+    rdw.initJoin();
     </script>
 
   </body>

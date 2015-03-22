@@ -1,48 +1,73 @@
 
 window.rdw = (function(app, $, AudioContext) {
-    var storeKey = 'random-draw-entry',
-        drawerKey = 'random-drawer';
+    'use strict';
+    
+    var uidKey = 'random-draw-uid',
+        uid = null,
         socket = io(),
         sounds = {},
         ui = {
             msg: $('.messages'),
             name: $('[name="entrant-name"]'),
             drawBtn: $('.draw'),
-            entrants: $('.entrants')
+            entrants: $('.entrants'),
+            form: $('form')
         };
     
     checkBrowser();
     
     socket.on('connect', initConnect);
+    socket.on('userinfo', updateUser);
     socket.on('problem', addMessage);
     
     function initConnect() {
-        var data = {},
-            entry = localStorage.getItem(storeKey);
+        uid = localStorage.getItem(uidKey);
         
-        if (entry && document.location.pathname === '/') {
-            data = JSON.parse(entry);
-            ui.name.val(data.name || '');
-            socket.emit('update', data.uid);
-            console.info('Socket for ' + data.uid + ' updated');
+        if (uid) {
+            socket.emit('update', uid);
         } else {
-            console.info('Socket ' + socket.id + ' is connected to the server!');
+            socket.emit('newuser');
         }
     }
     
-    function initEnter() {
-        downloadAudio('cheer.wav');
-        
-        socket.on('entered', function(data) {
-            localStorage.setItem(storeKey, data);
-            addMessage('You were entered!', 'success');
-            console.info('Entered in contest', data);
+    function updateUser(newUid) {
+        uid = newUid;
+        localStorage.setItem(uidKey, newUid);
+        console.info('Socket ' + socket.id + ' is connected to the server as ' + newUid);
+    }
+    
+    function initSetup() {
+        ui.form.on('submit', function(e) {
+            e.preventDefault();
+            socket.emit('create', {
+                uid: uid,
+                name: $('[name="name"]').val(),
+                path: $('[name="path"]').val(),
+                item: $('[name="item"]').val()
+            });
+            return false;
         });
         
-        socket.on('updated', function(data) {
-            localStorage.setItem(storeKey, data);
-            addMessage('Your name was updated!', 'success');
-            console.info('Updated entrant', data);
+        socket.on('create', function(contest) {
+            console.info('Contest created at /' + contest.path);
+            addMessage('Your drawing was created!', 'success');
+        });
+    }
+    
+    function initJoin() {
+        downloadAudio('cheer.wav');
+        
+        if (uid) {
+            console.log('joining with uid');
+            doJoin();
+        } else {
+            console.log('waiting for uid');
+            socket.on('userinfo', doJoin);
+        }
+        
+        socket.on('entered', function(data) {
+            addMessage('You were entered!', 'success');
+            console.info('Entered in contest', data);
         });
         
         socket.on('win', function() {
@@ -50,62 +75,72 @@ window.rdw = (function(app, $, AudioContext) {
             playAudio('cheer.wav');
             vibrate();
         });
-        
-        $('form').on('submit', function(e) {
-            e.preventDefault();
-            socket.emit('enter', ui.name.val());
-            return false;
+    }
+    
+    function doJoin() {
+        console.log('joining as', uid);
+        socket.emit('enterdrawing', {
+            uid: uid,
+            path: document.location.pathname
         });
     }
     
     function initDraw() {
-        var winner = $('.winner'),
-            uid = localStorage.getItem(drawerKey);
+        var contest = document.location.pathname
+            .replace(/\/draw\/?$/, '')
+            .replace(/^\//, '');
         
-        socket.emit('ihavethepower', uid || null);
+        socket.on('userinfo', function() {
+            socket.emit('isadmin', {
+                uid: uid,
+                path: contest
+            });
+            
+            socket.once('isadmin', function(isAdmin) {
+                if (isAdmin) {
+                    ui.drawBtn.css('display', 'inline-block');
+                } else {
+                    addMessage('You\'re not an admin, so this page is view-only!');
+                }
+            });
+        });
         
         ui.drawBtn.on('click', function(e) {
             e.preventDefault();
-            socket.emit('draw', uid);
+            socket.emit('draw', {
+                uid: uid,
+                path: contest
+            });
         });
         
         socket.on('entry', addEntrantUI);
         socket.on('remove', removeEntrantUI);
         
-        socket.on('winner', function(name) {
-            winner.text(name);
+        socket.on('winner', function(uid) {
+            $('.winner').text(uid);
         });
-        
-        socket.on('power', function(powerUid) {
-            uid = powerUid;
-            localStorage.setItem(drawerKey, uid);
-            ui.drawBtn.css('display', 'inline-block');
-        })
     }
     
-    function addEntrantUI(data) {
+    function addEntrantUI(uid) {
         var entrant;
         
-        data = (typeof data === 'string' && JSON.parse(data)) || data;
-        
-        if (data.splice) {
-            return data.forEach(function(value) {
+        if (uid.splice) {
+            return uid.forEach(function(value) {
                 addEntrantUI(value);
             });
         }
         
-        entrant = $('[data-uid="' + data.uid + '"]');
+        entrant = $('[data-uid="' + uid + '"]');
         
         if (entrant.length) {
-            entrant.text(data.name);
+            entrant.text(uid);
         } else {
-            ui.entrants.append('<li data-uid="' + data.uid + '">' + data.name + '</li>');
+            ui.entrants.append('<li data-uid="' + uid + '">' + uid + '</li>');
         }
     }
     
-    function removeEntrantUI(data) {
-        data = (typeof data === 'string' && JSON.parse(data)) || data;
-        $('[data-uid="' + data.uid + '"]').remove();
+    function removeEntrantUI(uid) {
+        $('[data-uid="' + uid + '"]').remove();
     }
     
     function addMessage(msg, cls) {
@@ -117,7 +152,7 @@ window.rdw = (function(app, $, AudioContext) {
     
     function downloadAudio(url, cb) {
         // No point in downloading audio if we can't us it.
-        audio = AudioContext && new AudioContext();
+        var audio = AudioContext && new AudioContext();
         if (audio) {
             var req = new XMLHttpRequest();
             req.open('GET', url, true);
@@ -141,7 +176,7 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function playAudio(url) {
-        audio = AudioContext && new AudioContext();
+        var audio = AudioContext && new AudioContext();
         if (audio && sounds[url]) {
             var source = audio.createBufferSource();
             source.buffer = sounds[url];
@@ -164,7 +199,8 @@ window.rdw = (function(app, $, AudioContext) {
     }
 
     return {
-        initEnter: initEnter,
+        initSetup: initSetup,
+        initJoin: initJoin,
         initDraw: initDraw,
         addMessage: addMessage
     };

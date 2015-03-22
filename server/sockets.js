@@ -1,188 +1,53 @@
+'use strict';
 
-var selectLimit = 10,
+var path = require('path'),
     crypto = require('crypto'),
-    drawer = null,
-    entrants = {};
+    expressApp = null,
+    selectLimit = 10,
+    drawings = {},
+    users = {};
 
-module.exports = function setupSockets(io) {
+module.exports = function setupSockets(io, app) {
+    expressApp = app;
 
     io.on('connection', function(socket) {
         connect(socket);
         socket.on('disconnect', disconnect);
-        socket.on('enter', enterDrawing);
-        socket.on('update', updateEntrant);
+        socket.on('newuser', function() {
+            var uid = getUid(socket.id);
+            updateUser(uid, socket);
+            socket.emit('userinfo', uid);
+        });
+        socket.on('update', function(uid) {
+            updateUser(uid, this);
+            socket.emit('userinfo', uid);
+        });
         
-        socket.on('ihavethepower', registerDrawer);
+        socket.on('enterdrawing', enterDrawing);
+        
+        socket.on('create', createDrawing);
+        socket.on('isadmin', checkForAdmin);
         socket.on('draw', selectWinner);
     });
 
 };
 
 
-// --------------- CONTEST ENTRANTS --------------- //
+// ------------ Connection & User Management -------------- //
 
-function enterDrawing(name) {
-    var existingKey,
-        socket = this;
-
-    if (!name) {
-        socket.emit('problem', 'Please submit your name to enter!');
-        return console.log('Unable to enter user with no name (' + socket.id + ')');
-    }
-    
-    name = name.toLowerCase();
-
-    existingKey = findKey(name, 'name');
-    
-    if (existingKey && entrants[existingKey].socket.id !== socket.id) {
-        
-        
-        
-        socket.emit('problem', 'Sorry, but there is already an entrant by that name! Can you provide your full name?');
-        return console.log('Duplicate entrant with name: ' + name);
-        
-    } else if (existingKey) {
-        
-        updateEntrant.apply(socket, [entrants[existingKey].uid]);
-        socket.emit('updated', getClientData(entrants[existingKey]));
-        
-        return console.log(existingKey + ' was already entered in the drawing, but updated connection status');
-    }
-    
-    existingKey = findKey(socket.id, 'socket');
-    
-    if (existingKey) {
-        updateEntrant.apply(socket, [entrants[existingKey].uid, { name: name }]);
-        socket.emit('updated', getClientData(entrants[existingKey]));
-        
-        return console.log(existingKey + ' was already entered in the drawing, but updated name to ' + name);
-    }
-
-    socket.join('entrants', function(err) {
-        if (err) {
-            console.log('Unable to add ' + socket.id + ' to /entrants!');
-            socket.emit('problem', 'Sorry, but I was unable to enter you into this contest. :(');
-            return console.error(err);
-        }
-        
-        var data,
-            uid = getUid(socket.id);
-        
-        entrants[uid] = {
+function updateUser(uid, socket) {
+    if (users[uid]) {
+        users[uid].socket = socket;
+        console.log('Socket updated for ' + uid);
+    } else {
+        users[uid] = {
             uid: uid,
             socket: socket,
-            connected: true,
-            name: name
+            connected: false
         };
-        
-        data = getClientData(entrants[uid]);
-        
-        console.log(uid + ' was entered in the drawing as ' + name);
-        socket.emit('entered', data);
-        socket.to('drawers').emit('entry', data);
-    });
-}
-
-function updateEntrant(uid, data) {
-    var prop,
-        data = data || {},
-        socket = this,
-        existingKey = findKey(uid, 'uid');
-    
-    if (!existingKey) { return; }
-    
-    for (prop in data) {
-        if (data.hasOwnProperty(prop)) {
-            entrants[existingKey][prop] = data[prop];
-        }
-    }
-    
-    entrants[existingKey].socket = socket;
-    entrants[existingKey].connected = true;
-    
-    if (socket.rooms.indexOf('entrants') < 0) {
-        socket.join('entrants', function(err) {
-            if (err) {
-                console.log('Unable to rejoin /entrants for ' + uid + '!');
-                socket.emit('problem', 'Sorry, but I had trouble updating your status. :(');
-                return console.error(err);
-            }
-            console.log(uid + ' rejoined /entrants');
-        });
+        console.log('New user added ' + uid);
     }
 }
-
-
-// --------------- DRAWING A WINNER --------------- //
-
-function registerDrawer(uid) {
-    var socket = this,
-        uid = uid || getUid(socket.id);
-    
-    socket.join('drawers', function(err) {
-        if (err) {
-            console.log('Unable to add ' + socket.id + ' to /drawers!');
-            socket.emit('problem', 'Sorry, but I was unable to add you to the drawers room. :(');
-            return console.error(err);
-        }
-        
-        var key, entrantData = [];
-        
-        console.log('New user in drawers: ' + uid);
-        
-        if (drawer && drawer.uid !== uid) {
-            socket.emit('problem', 'Sorry, but someone else is already drawing.');
-        } else {
-            drawer = {
-                uid: uid,
-                socket: socket
-            };
-            socket.emit('power', uid);
-            console.log(uid + ' has the power!');
-        }
-        
-        for (key in entrants) {
-            if (entrants.hasOwnProperty(key)) {
-                entrantData.push(getClientData(entrants[key]));
-            }
-        }
-        if (entrantData.length) {
-            socket.emit('entry', entrantData);
-        }
-    });
-}
-
-function selectWinner(uid, count) {
-    var socket = this,
-        keys = Object.keys(entrants),
-        winner = Math.floor(Math.random() * keys.length);
-    
-    if (uid !== drawer.uid) {
-        return socket.emit('problem', 'You have no power here.');
-    }
-    
-    if (!keys.length) {
-        return socket.emit('problem', 'NO ENTRANTS!');
-    }
-    
-    count = count || 0;
-    
-    if (entrants[keys[winner]] && 
-        entrants[keys[winner]].connected && 
-        entrants[keys[winner]].name) {
-        
-        socket.emit('winner', entrants[keys[winner]].name);
-        entrants[keys[winner]].socket.emit('win');
-    
-    } else if (count < Math.min(selectLimit, keys.length)) {
-        
-        selectWinner.apply(socket, [uid, count++]);
-        
-    }
-}
-
-
-// ------------------- HELPERS -------------------- //
 
 function connect(socket) {
     console.log(socket.id + ' connected.');
@@ -190,18 +55,26 @@ function connect(socket) {
 
 function disconnect() {
     var socket = this,
-        existingKey = findKey(socket.id, 'socket');
+        uid = findUserBySocket(socket.id);
 
-    console.log(socket.id + ' disconnected.');
+    console.log(socket.id + ' disconnected (user: ' + uid + ')');
 
-    if (existingKey) {
-        socket.to('drawers').emit('remove', getClientData(entrants[existingKey]));
-        entrants[existingKey].connected = false;
+    if (uid) {
+        socket.to('admins').emit('remove', uid);
+        users[uid].connected = false;
     }
+}
+
+function findUserBySocket(id) {
+    var i, l,
+        keys = Object.keys(users);
     
-    if (drawer && drawer.socket.id === socket.id) {
-        drawer = null;
+    for (i=0, l=keys.length; i<l; ++i) {
+        if (users[keys[i]].socket.id === id) {
+            return keys[i];
+        }
     }
+    return null;
 }
 
 function getUid(seed) {
@@ -211,30 +84,144 @@ function getUid(seed) {
         .digest('hex');
 }
 
-function getClientData(entrant) {
-    var data = '';
+
+// --------------- Drawing Administration --------------- //
+
+function createDrawing(data) {
+    var socket = this;
     
-    if (entrant && entrant.connected) {
-        data = JSON.stringify({
-            uid: entrant.uid,
-            name: entrant.name
-        })
+    data = data || {};
+    
+    if (!data.uid) {
+        return socket.emit('problem', 'Are you disconnected? I don\'t have an ID for you.');
     }
     
-    return data;
+    if (!data.path) {
+        return socket.emit('problem', 'Please provide a URL path for entrants to use.');
+    }
+    data.path = data.path.replace(/^\//, '');
+    
+    if (drawings[data.path]) {
+        return socket.emit('problem', 'There is already a drawing at that URL!');
+    }
+    
+    drawings[data.path] = {
+        admin: data.uid,
+        name: data.name || null,
+        path: data.path,
+        item: data.item || null,
+        entrants: {}
+    };
+    
+    expressApp.get('/' + data.path, function(req, res){
+        res.sendFile(path.resolve(expressApp.settings.clientBase + '/client/join.html'));
+    });
+    expressApp.get('/' + data.path + '/draw', function(req, res){
+        res.sendFile(path.resolve(expressApp.settings.clientBase + '/client/draw.html'));
+    });
+    
+    socket.emit('create', drawings[data.path]);
+    
+    console.log('New contest created at /' + data.path + ' by ' + data.uid);
 }
 
-function findKey(value, param) {
-    var i, l,
-        keys = Object.keys(entrants);
+function selectWinner(data, count) {
+    var contest, keys, winner,
+        socket = this;
     
-    for (i=0, l=keys.length; i<l; ++i) {
-        if (param === 'socket' && entrants[keys[i]].socket.id === value) {
-            return keys[i];
-        } else if (entrants[keys[i]][param] === value) {
-            return keys[i];
-        }
+    data = data || {};
+    count = count || 0;
+    contest = drawings[data.path.replace(/^\//, '')];
+    
+    if (!contest) {
+        return socket.emit('problem', 'There is no drawing at this path.');
     }
     
-    return null;
+    if (data.uid !== contest.admin) {
+        return socket.emit('problem', 'You have no power here.');
+    }
+    
+    keys = Object.keys(contest.entrants);
+    winner = Math.floor(Math.random() * keys.length);
+    
+    if (!keys.length) {
+        return socket.emit('problem', 'NO ENTRANTS!');
+    }
+    
+    if (contest.entrants[keys[winner]] && users[keys[winner]].connected) {
+        
+        socket.emit('winner', keys[winner]);
+        contest.entrants[keys[winner]].selected = true;
+        users[keys[winner]].socket.emit('win', contest.path);
+    
+    } else if (count < Math.min(selectLimit, keys.length)) {
+        
+        selectWinner.apply(socket, [data, count++]);
+        
+    }
+}
+
+function checkForAdmin(data) {
+    console.log('check for admin', data, drawings[data.path] && drawings[data.path].admin);
+    
+    this.emit(
+        'isadmin',
+        data && data.uid && data.path && drawings[data.path] && drawings[data.path].admin === data.uid
+    );
+}
+
+
+// --------------- CONTEST ENTRANTS --------------- //
+
+function enterDrawing(data) {
+    var contest,
+        socket = this;
+
+    data = data || {};
+    
+    if (!data.uid || !users[data.uid]) {
+        socket.emit('problem', 'Sorry, but I\'m not sure who you are... can you refresh the page?');
+        return console.log('Unable to enter user with no uid (' + socket.id + ')');
+    }
+    if (!data.path) {
+        return socket.emit('problem', 'Sorry, but I\'m not sure what drawing you are trying to join!');
+    }
+    
+    data.path = data.path.replace(/^\//, '');
+    contest = drawings[data.path];
+    
+    if (!contest) {
+        return socket.emit('problem', 'Sorry, but it looks like that drawing may have ended.');
+    }
+    
+    updateUser(data.uid, socket);
+
+    socket.join('entrants', function(err) {
+        if (err) {
+            console.log('Unable to add ' + socket.id + ' to /entrants!');
+            socket.emit('problem', 'Sorry, but I was unable to enter you into this drawing.');
+            return console.error(err);
+        }
+        
+        if (contest.entrants[data.uid]) {
+            
+            console.log(data.uid + ' was updated in the drawing at /' + data.path);
+            
+        } else {
+            
+            contest.entrants[data.uid] = {
+                uid: data.uid,
+                selected: false
+            };
+            
+            console.log(data.uid + ' was entered in the drawing at /' + data.path);
+        }
+        
+        socket.emit('entered', {
+            path: contest.path,
+            name: contest.name,
+            item: contest.item
+        });
+        socket.to('admins').emit('entry', data.uid);
+    });
 }

@@ -11,7 +11,7 @@ var express = require('express'),
 routes(app);
 
 // Set up all socket connections
-sockets(io);
+sockets(io, app);
 
 http.listen(port, function(){
   console.log('Random draw server listening on ' + port);
