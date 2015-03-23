@@ -60,6 +60,7 @@ function disconnect() {
     console.log(socket.id + ' disconnected (user: ' + uid + ')');
 
     if (uid) {
+        console.log('Firing remove');
         socket.to('admins').emit('remove', uid);
         users[uid].connected = false;
     }
@@ -123,6 +124,16 @@ function createDrawing(data) {
     socket.emit('create', drawings[data.path]);
     
     console.log('New contest created at /' + data.path + ' by ' + data.uid);
+    
+    socket.join('admins', function(err) {
+        if (err) {
+            console.log('Unable to add ' + socket.id + ' to /admins!');
+            socket.emit('problem', 'Sorry, but I was unable to add you to the admins room, which may casuse problems.');
+            return console.error(err);
+        }
+        
+        console.log('Added ' + data.uid + ' to /admins');
+    });
 }
 
 function selectWinner(data, count) {
@@ -166,10 +177,36 @@ function selectWinner(data, count) {
 }
 
 function checkForAdmin(data) {
-    this.emit(
-        'isadmin',
-        data && data.uid && data.path && drawings[data.path] && drawings[data.path].admin === data.uid
-    );
+    var uid, contest,
+        socket = this,
+        entrants = [],
+        isAdmin = false;
+    
+    data = data || {};
+    contest = drawings[data.path];
+    isAdmin = data.uid && data.path && contest && contest.admin === data.uid;
+    
+    socket.emit('isadmin', isAdmin);
+    
+    if (isAdmin) {
+        for (uid in contest.entrants) {
+            if (contest.entrants.hasOwnProperty(uid)) {
+                entrants.push(uid);
+            }
+        }
+        
+        socket.emit('entry', entrants);
+        
+        socket.join('admins', function(err) {
+            if (err) {
+                console.log('Unable to add ' + socket.id + ' to /admins!');
+                socket.emit('problem', 'Sorry, but I was unable to add you to the admins room, which may casuse problems.');
+                return console.error(err);
+            }
+            
+            console.log('Added ' + data.uid + ' to /admins');
+        });
+    }
 }
 
 

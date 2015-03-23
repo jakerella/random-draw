@@ -118,6 +118,8 @@ window.rdw = (function(app, $, AudioContext) {
             });
         });
         
+        console.log(socket.rooms);
+        
         socket.on('entry', addEntrantUI);
         socket.on('remove', removeEntrantUI);
         
@@ -128,8 +130,6 @@ window.rdw = (function(app, $, AudioContext) {
     
     function addEntrantUI(uid) {
         var entrant;
-        
-        console.log('adding entrant', uid);
         
         if (uid.splice) {
             return uid.forEach(function(value) {
