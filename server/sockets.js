@@ -37,16 +37,16 @@ module.exports = function setupSockets(io, app) {
 
 function updateUser(uid, socket) {
     if (users[uid]) {
-        users[uid].socket = socket;
-        console.log('Socket updated for ' + uid);
+        console.log('Updating socket and connected switch for ' + uid);
     } else {
-        users[uid] = {
-            uid: uid,
-            socket: socket,
-            connected: false
-        };
-        console.log('New user added ' + uid);
+        console.log('Added new user: ' + uid);
     }
+    
+    users[uid] = {
+        uid: uid,
+        socket: socket,
+        connected: true
+    };
 }
 
 function connect(socket) {
@@ -133,6 +133,10 @@ function selectWinner(data, count) {
     count = count || 0;
     contest = drawings[data.path.replace(/^\//, '')];
     
+    if (count > selectLimit) {
+        return socket.emit('problem', 'Unable to find a winner, recursive depth limit reached.');
+    }
+    
     if (!contest) {
         return socket.emit('problem', 'There is no drawing at this path.');
     }
@@ -148,7 +152,7 @@ function selectWinner(data, count) {
         return socket.emit('problem', 'NO ENTRANTS!');
     }
     
-    if (contest.entrants[keys[winner]] && users[keys[winner]].connected) {
+    if (contest.entrants[keys[winner]] && users[keys[winner]] && users[keys[winner]].connected) {
         
         socket.emit('winner', keys[winner]);
         contest.entrants[keys[winner]].selected = true;
@@ -162,8 +166,6 @@ function selectWinner(data, count) {
 }
 
 function checkForAdmin(data) {
-    console.log('check for admin', data, drawings[data.path] && drawings[data.path].admin);
-    
     this.emit(
         'isadmin',
         data && data.uid && data.path && drawings[data.path] && drawings[data.path].admin === data.uid
