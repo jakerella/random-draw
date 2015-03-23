@@ -51,6 +51,11 @@ window.rdw = (function(app, $, AudioContext) {
         socket.on('create', function(contest) {
             console.info('Contest created at /' + contest.path);
             addMessage('Your drawing was created!', 'success');
+            ui.form.remove();
+            $('.navToDraw')
+                .css('display', 'block')
+                .find('a')
+                    .attr('href', '/' + contest.path + '/draw');
         });
     }
     
@@ -100,7 +105,7 @@ window.rdw = (function(app, $, AudioContext) {
                 if (isAdmin) {
                     ui.drawBtn.css('display', 'inline-block');
                 } else {
-                    addMessage('You\'re not an admin, so this page is view-only!');
+                    addMessage('You\'re not an admin, so this page is pretty useless.');
                 }
             });
         });
@@ -124,6 +129,8 @@ window.rdw = (function(app, $, AudioContext) {
     function addEntrantUI(uid) {
         var entrant;
         
+        console.log('adding entrant', uid);
+        
         if (uid.splice) {
             return uid.forEach(function(value) {
                 addEntrantUI(value);
@@ -140,6 +147,8 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function removeEntrantUI(uid) {
+        console.log('removing entrant', uid);
+        
         $('[data-uid="' + uid + '"]').remove();
     }
     

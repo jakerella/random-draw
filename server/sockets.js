@@ -222,6 +222,7 @@ function enterDrawing(data) {
             name: contest.name,
             item: contest.item
         });
-        socket.to('admins').emit('entry', data.uid);
+        
+        users[contest.admin].socket.emit('entry', data.uid);
     });
 }
