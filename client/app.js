@@ -7,6 +7,7 @@ window.rdw = (function(app, $, AudioContext) {
         socket = io(),
         sounds = {},
         ui = {
+            body: $('body'),
             msg: $('.messages'),
             name: $('[name="entrant-name"]'),
             drawBtn: $('.draw'),
@@ -61,6 +62,7 @@ window.rdw = (function(app, $, AudioContext) {
     
     function initJoin() {
         downloadAudio('cheer.wav');
+        downloadAudio('ting.mp3');
         
         if (uid) {
             console.log('joining with uid');
@@ -71,7 +73,17 @@ window.rdw = (function(app, $, AudioContext) {
         }
         
         socket.on('entered', function(data) {
-            addMessage('You were entered!', 'success');
+            addMessage('You are entered...', 'info');
+            ui.body.addClass('entered');
+            playAudio('ting.mp3');
+            
+            if (data.name) {
+                $('.drawing-name').text(data.name);
+            }
+            if (data.item) {
+                $('.drawing-item').text('drawing for a ' + data.item);
+            }
+            
             console.info('Entered in contest', data);
         });
         

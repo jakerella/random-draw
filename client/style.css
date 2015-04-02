@@ -9,6 +9,19 @@ h1, h2 {
     text-align: center;
     margin: 0.5em;
 }
+body {
+    padding-top: 3em;
+}
+
+
+.drawing-info {
+    width: 96%;
+    position: absolute;
+    bottom: 2em;
+}
+body.entered {
+    background-color: #9f9;
+}
 
 
 form {
@@ -35,13 +48,17 @@ input {
     font-size: 1.5em;
     font-weight: bold;
     text-align: center;
+    
+    width: 96%;
+    position: absolute;
+    top: 1em;
 }
 .error {
-    color: #933;
+    color: #600;
 }
 .success {
-    color: #393;
+    color: #060;
 }
 .info {
-    color: #339;
+    color: #006;
 }
