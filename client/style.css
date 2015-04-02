@@ -122,6 +122,17 @@ figure.winner {
     animation: pulse 2s ease-in-out infinite;
 }
 
+.entry-url {
+    position: absolute;
+    top: 0.5em;
+    right: 1em;
+    text-align: right;
+    font-size: 1.7em;
+}
+.entry-url:link, .entry-url:visited {
+    color: #090;
+    text-decoration: none;
+}
 .actions {
     position: absolute;
     bottom: 0.5em;

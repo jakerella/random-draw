@@ -124,9 +124,14 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function initDraw() {
-        var contest = document.location.pathname
+        var entryUrl = document.location.href.replace(/\/draw\/?$/, ''),
+            contest = document.location.pathname
             .replace(/\/draw\/?$/, '')
             .replace(/^\//, '');
+        
+        $('.entry-url')
+            .attr('href', entryUrl)
+            .text(entryUrl);
         
         socket.on('userinfo', function() {
             socket.emit('isadmin', {
