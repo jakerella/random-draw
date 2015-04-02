@@ -4,6 +4,8 @@ var path = require('path'),
     crypto = require('crypto'),
     expressApp = null,
     selectLimit = 10,
+    waitingGameLength = 10000,
+    waitingGameFreq = 200,
     drawings = {},
     users = {};
 
@@ -144,15 +146,20 @@ function selectWinner(data, count) {
     count = count || 0;
     contest = drawings[data.path.replace(/^\//, '')];
     
+    console.log('Selecting winner...', count);
+    
     if (count > selectLimit) {
+        console.log('selectLimit hit');
         return socket.emit('problem', 'Unable to find a winner, recursive depth limit reached.');
     }
     
     if (!contest) {
+        console.log('no contest');
         return socket.emit('problem', 'There is no drawing at this path.');
     }
     
     if (data.uid !== contest.admin) {
+        console.log('no admin');
         return socket.emit('problem', 'You have no power here.');
     }
     
@@ -160,19 +167,49 @@ function selectWinner(data, count) {
     winner = Math.floor(Math.random() * keys.length);
     
     if (!keys.length) {
+        console.log('no entrants');
         return socket.emit('problem', 'NO ENTRANTS!');
     }
     
-    if (contest.entrants[keys[winner]] && users[keys[winner]] && users[keys[winner]].connected) {
+    if (contest.entrants[keys[winner]] && users[keys[winner]] && 
+        users[keys[winner]].connected && !contest.entrants[keys[winner]].selected) {
         
-        socket.emit('winner', keys[winner]);
-        contest.entrants[keys[winner]].selected = true;
-        users[keys[winner]].socket.emit('win', contest.path);
+        console.log('selected... waiting game');
+        
+        return waitingGame(contest, function notifyWinner() {
+            console.log('notifying');
+            
+            socket.emit('winner', keys[winner]);
+            contest.entrants[keys[winner]].selected = true;
+            users[keys[winner]].socket.emit('win', contest.path);
+        });
     
     } else if (count < Math.min(selectLimit, keys.length)) {
+        console.log('recursing');
         
-        selectWinner.apply(socket, [data, count++]);
-        
+        return selectWinner.apply(socket, [data, ++count]);
+    } else {
+    
+        return socket.emit('problem', 'There are no more entrants to select!');
+    }
+}
+
+function waitingGame(contest, cb) {
+    var i, l,
+        uids = Object.keys(contest.entrants);
+    
+    setTimeout(function winnerCallback() {
+        cb();
+    }, waitingGameLength + 50);
+    
+    for (i=0; i < (waitingGameLength / waitingGameFreq); ++i) {
+        setTimeout(function highlightEntrant() {
+            var index = Math.floor(Math.random() * uids.length);
+            
+            users[uids[index]].socket.emit('maybe', contest.path);
+            users[contest.admin].socket.emit('maybe', uids[index]);
+            
+        }, (i * waitingGameFreq));
     }
 }
 

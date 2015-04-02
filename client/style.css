@@ -67,6 +67,62 @@ input {
 }
 
 
+@-webkit-keyframes fadeIt {
+  0%   { background-color: #060; }
+  100% { background-color: #ff7; }
+}
+@-moz-keyframes fadeIt {
+  0%   { background-color: #060; }
+  100% { background-color: #ff7; }
+}
+@-o-keyframes fadeIt {
+  0%   { background-color: #060; }
+  100% { background-color: #ff7; }
+}
+@keyframes fadeIt {
+  0%   { background-color: #060; }
+  100% { background-color: #ff7; }
+}
+
+.maybe {    
+    background-image: none !important;
+    -webkit-animation: fadeIt 2s ease-out;
+    -moz-animation: fadeIt 2s ease-out;
+    -o-animation: fadeIt 2s ease-out;
+    animation: fadeIt 2s ease-out;
+}
+.winner {
+    background-color: #9f9 !important;
+}
+
+@-webkit-keyframes pulse {
+  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
+  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+}
+@-moz-keyframes pulse {
+  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
+  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+}
+@-o-keyframes pulse {
+  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
+  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+}
+@keyframes pulse {
+  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
+  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+}
+figure.winner {
+    -webkit-animation: pulse 2s ease-in-out infinite;
+    -moz-animation: pulse 2s ease-in-out infinite;
+    -o-animation: pulse 2s ease-in-out infinite;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+
 .messages {
     font-size: 1.5em;
     font-weight: bold;

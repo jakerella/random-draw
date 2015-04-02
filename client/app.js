@@ -6,6 +6,7 @@ window.rdw = (function(app, $, AudioContext) {
         uid = null,
         socket = io(),
         sounds = {},
+        maybeTime = 2000,
         size = 30,
         bounds = {
             top: 0,
@@ -15,9 +16,8 @@ window.rdw = (function(app, $, AudioContext) {
         },
         speed = 5,
         maxSpeed = 50,
-        entrants = {
-            
-        },
+        moveHandle = null,
+        entrants = {},
         ui = {
             body: $('body'),
             msg: $('.messages'),
@@ -100,8 +100,16 @@ window.rdw = (function(app, $, AudioContext) {
             console.info('Entered in contest', data);
         });
         
+        socket.on('maybe', function() {
+            ui.body.addClass('maybe');
+            setTimeout(function() {
+                ui.body.removeClass('maybe');
+            }, maybeTime);
+        });
+        
         socket.on('win', function() {
             addMessage('YOU WON!', 'success');
+            ui.body.addClass('winner');
             playAudio('cheer.wav');
             vibrate();
         });
@@ -143,13 +151,25 @@ window.rdw = (function(app, $, AudioContext) {
             });
         });
         
-        console.log(socket.rooms);
+        socket.on('maybe', function(uid) {
+            entrants[uid].addClass('maybe');
+            setTimeout(function() {
+                entrants[uid].removeClass('maybe');
+            }, maybeTime);
+        });
         
         socket.on('entry', addEntrantUI);
         socket.on('remove', removeEntrantUI);
         
         socket.on('winner', function(uid) {
-            $('.winner').text(uid);
+            entrants[uid]
+                .addClass('winner')
+                .css('top', (bounds.bottom / 2) - (size / 2))
+                .css('left', (bounds.right / 2) - (size / 2));
+            stopMotion();
+            ui.uid
+                .addClass('selected')
+                .text(uid);
         });
         
         moveAllEntrants();
@@ -183,8 +203,15 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function startMotion(element) {
-        speed = Math.min(maxSpeed, speed + 1);
+        if (speed) {
+            speed = Math.min(maxSpeed, speed + 1);
+        }
         getNewDirection(element);
+    }
+    
+    function stopMotion() {
+        clearTimeout(moveHandle);
+        moveHandle = null;
     }
     
     function getNewDirection(element) {
@@ -197,7 +224,7 @@ window.rdw = (function(app, $, AudioContext) {
             moveEntrant(entrants[uid]);
         });
         
-        setTimeout(moveAllEntrants, 50);
+        moveHandle = setTimeout(moveAllEntrants, 50);
     }
     
     function moveEntrant(element) {
@@ -224,6 +251,9 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function addMessage(msg, cls) {
+        if (!cls || cls === 'error') {
+            console.warn(msg);
+        }
         ui.msg
             .removeClass('success error info')
             .text(msg)
