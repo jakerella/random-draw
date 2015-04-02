@@ -8,6 +8,14 @@ html,body,div,p,h1,h2,h3 {
 h1, h2 {
     text-align: center;
     margin: 0.5em;
+    z-index: 2;
+}
+h3.uid {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    color: #999;
+    font-size: 0.8em;
 }
 body {
     padding-top: 3em;
@@ -20,17 +28,32 @@ body {
     bottom: 2em;
 }
 body.entered {
-    background-color: #9f9;
+    background-color: #ff7;
+}
+.entrant {
+    position: absolute;
+    display: block;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    background: #ff7;
+    -moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border-radius: 15px;
+    cursor: help;
+    z-index: -1;
 }
 
 
 form {
     margin: 4em auto;
+    z-index: 2;
 }
 input {
     width: 80%;
     margin: 0.5em 10%;
     font-size: 2em;
+    z-index: 3;
 }
 [type=submit], [type=button] {
     background: rgb(130, 224, 255);
@@ -52,6 +75,7 @@ input {
     width: 96%;
     position: absolute;
     top: 1em;
+    z-index: 3;
 }
 .error {
     color: #600;

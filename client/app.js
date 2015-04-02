@@ -6,10 +6,22 @@ window.rdw = (function(app, $, AudioContext) {
         uid = null,
         socket = io(),
         sounds = {},
+        size = 30,
+        bounds = {
+            top: 0,
+            left: 0,
+            right: window.innerWidth,
+            bottom: window.innerHeight
+        },
+        speed = 5,
+        maxSpeed = 50,
+        entrants = {
+            
+        },
         ui = {
             body: $('body'),
             msg: $('.messages'),
-            name: $('[name="entrant-name"]'),
+            uid: $('.uid'),
             drawBtn: $('.draw'),
             entrants: $('.entrants'),
             form: $('form')
@@ -77,6 +89,7 @@ window.rdw = (function(app, $, AudioContext) {
             ui.body.addClass('entered');
             playAudio('ting.mp3');
             
+            ui.uid.text(uid);
             if (data.name) {
                 $('.drawing-name').text(data.name);
             }
@@ -138,6 +151,8 @@ window.rdw = (function(app, $, AudioContext) {
         socket.on('winner', function(uid) {
             $('.winner').text(uid);
         });
+        
+        moveAllEntrants();
     }
     
     function addEntrantUI(uid) {
@@ -151,17 +166,61 @@ window.rdw = (function(app, $, AudioContext) {
         
         entrant = $('[data-uid="' + uid + '"]');
         
-        if (entrant.length) {
-            entrant.text(uid);
-        } else {
-            ui.entrants.append('<li data-uid="' + uid + '">' + uid + '</li>');
+        if (!entrant.length) {
+            entrants[uid] = $('<figure class="entrant" data-uid="' + uid + '" title="' + uid + '"></figure>');
+            ui.entrants.append(entrants[uid]);
+            setStartPosition(entrants[uid]);
+            startMotion(entrants[uid]);
         }
+    }
+    
+    function setStartPosition(element) {
+        var x = Math.floor(Math.random() * bounds.right),
+            y = Math.floor(Math.random() * bounds.bottom);
+        
+        element.css('top', y + 'px');
+        element.css('left', x + 'px');
+    }
+    
+    function startMotion(element) {
+        speed = Math.min(maxSpeed, speed + 1);
+        getNewDirection(element);
+    }
+    
+    function getNewDirection(element) {
+        element.direction = Math.floor(Math.random() * 360);
+    }
+    
+    function moveAllEntrants() {
+        var keys = Object.keys(entrants);
+        keys.forEach(function(uid) {
+            moveEntrant(entrants[uid]);
+        });
+        
+        setTimeout(moveAllEntrants, 50);
+    }
+    
+    function moveEntrant(element) {
+        var top = parseInt($(element).css('top'), 10),
+            left = parseInt($(element).css('left'), 10),
+            newTop = top + (speed * Math.sin(element.direction)),
+            newLeft = left + (speed * Math.cos(element.direction));
+        
+        if (newTop < bounds.top || (newTop + size) > bounds.bottom || newLeft < bounds.left || (newLeft + size) > bounds.right) {
+            getNewDirection(element);
+            return moveEntrant(element);
+        }
+        
+        element.css('top', newTop + 'px');
+        element.css('left', newLeft + 'px');
     }
     
     function removeEntrantUI(uid) {
         console.log('removing entrant', uid);
         
-        $('[data-uid="' + uid + '"]').remove();
+        if (entrants[uid]) {
+            $(entrants[uid]).remove();
+        }
     }
     
     function addMessage(msg, cls) {
