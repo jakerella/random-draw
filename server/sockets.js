@@ -30,6 +30,8 @@ module.exports = function setupSockets(io, app) {
         socket.on('create', createDrawing);
         socket.on('isadmin', checkForAdmin);
         socket.on('draw', selectWinner);
+        socket.on('reset', resetContest);
+        socket.on('delete', deleteContest);
     });
 
 };
@@ -146,20 +148,15 @@ function selectWinner(data, count) {
     count = count || 0;
     contest = drawings[data.path.replace(/^\//, '')];
     
-    console.log('Selecting winner...', count);
-    
     if (count > selectLimit) {
-        console.log('selectLimit hit');
         return socket.emit('problem', 'Unable to find a winner, recursive depth limit reached.');
     }
     
     if (!contest) {
-        console.log('no contest');
         return socket.emit('problem', 'There is no drawing at this path.');
     }
     
     if (data.uid !== contest.admin) {
-        console.log('no admin');
         return socket.emit('problem', 'You have no power here.');
     }
     
@@ -167,29 +164,21 @@ function selectWinner(data, count) {
     winner = Math.floor(Math.random() * keys.length);
     
     if (!keys.length) {
-        console.log('no entrants');
         return socket.emit('problem', 'NO ENTRANTS!');
     }
     
     if (contest.entrants[keys[winner]] && users[keys[winner]] && 
         users[keys[winner]].connected && !contest.entrants[keys[winner]].selected) {
         
-        console.log('selected... waiting game');
-        
         return waitingGame(contest, function notifyWinner() {
-            console.log('notifying');
-            
             socket.emit('winner', keys[winner]);
             contest.entrants[keys[winner]].selected = true;
             users[keys[winner]].socket.emit('win', contest.path);
         });
     
     } else if (count < Math.min(selectLimit, keys.length)) {
-        console.log('recursing');
-        
         return selectWinner.apply(socket, [data, ++count]);
     } else {
-    
         return socket.emit('problem', 'There are no more entrants to select!');
     }
 }
@@ -211,6 +200,56 @@ function waitingGame(contest, cb) {
             
         }, (i * waitingGameFreq));
     }
+}
+
+function resetContest(data) {
+    var contest, keys,
+        socket = this;
+    
+    data = data || {};
+    contest = drawings[data.path.replace(/^\//, '')];
+    
+    if (!contest) {
+        return socket.emit('problem', 'There is no drawing at this path.');
+    }
+    if (data.uid !== contest.admin) {
+        return socket.emit('problem', 'You have no power here.');
+    }
+    
+    keys = Object.keys(contest.entrants);
+    
+    keys.forEach(function(uid) {
+        users[uid].socket.emit('problem', 'This drawing has been reset! Please refresh this page to re-enter.');
+    });
+    
+    contest.entrants = {};
+    
+    socket.emit('reset');
+}
+
+function deleteContest(data) {
+    var contest, keys,
+        socket = this;
+    
+    data = data || {};
+    contest = drawings[data.path.replace(/^\//, '')];
+    
+    if (!contest) {
+        return socket.emit('problem', 'There is no drawing at this path.');
+    }
+    if (data.uid !== contest.admin) {
+        return socket.emit('problem', 'You have no power here.');
+    }
+    
+    keys = Object.keys(contest.entrants);
+    
+    keys.forEach(function(uid) {
+        users[uid].socket.emit('problem', 'This drawing has closed!');
+    });
+    
+    drawings[contest.path] = null;
+    
+    socket.emit('deleted');
 }
 
 function checkForAdmin(data) {

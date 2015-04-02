@@ -122,6 +122,13 @@ figure.winner {
     animation: pulse 2s ease-in-out infinite;
 }
 
+.actions {
+    position: absolute;
+    bottom: 0.5em;
+    right: 1em;
+    font-size: 1em;
+}
+
 
 .messages {
     font-size: 1.5em;

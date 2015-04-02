@@ -172,6 +172,33 @@ window.rdw = (function(app, $, AudioContext) {
                 .text(uid);
         });
         
+        $('[href="#reset"]').on('click', function(e) {
+            e.preventDefault();
+            socket.emit('reset', {
+                uid: uid,
+                path: contest
+            });
+        });
+        
+        $('[href="#delete"]').on('click', function(e) {
+            e.preventDefault();
+            socket.emit('delete', {
+                uid: uid,
+                path: contest
+            });
+        });
+        
+        socket.on('reset', function() {
+            var keys = Object.keys(entrants);
+            keys.forEach(function(uid) {
+                removeEntrantUI(uid);
+            });
+        });
+        
+        socket.on('deleted', function() {
+            document.location.replace('/setup');
+        });
+        
         moveAllEntrants();
     }
     
@@ -228,18 +255,20 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function moveEntrant(element) {
-        var top = parseInt($(element).css('top'), 10),
-            left = parseInt($(element).css('left'), 10),
-            newTop = top + (speed * Math.sin(element.direction)),
-            newLeft = left + (speed * Math.cos(element.direction));
-        
-        if (newTop < bounds.top || (newTop + size) > bounds.bottom || newLeft < bounds.left || (newLeft + size) > bounds.right) {
-            getNewDirection(element);
-            return moveEntrant(element);
+        if (element) {
+            var top = parseInt($(element).css('top'), 10),
+                left = parseInt($(element).css('left'), 10),
+                newTop = top + (speed * Math.sin(element.direction)),
+                newLeft = left + (speed * Math.cos(element.direction));
+            
+            if (newTop < bounds.top || (newTop + size) > bounds.bottom || newLeft < bounds.left || (newLeft + size) > bounds.right) {
+                getNewDirection(element);
+                return moveEntrant(element);
+            }
+            
+            element.css('top', newTop + 'px');
+            element.css('left', newLeft + 'px');
         }
-        
-        element.css('top', newTop + 'px');
-        element.css('left', newLeft + 'px');
     }
     
     function removeEntrantUI(uid) {
@@ -247,6 +276,7 @@ window.rdw = (function(app, $, AudioContext) {
         
         if (entrants[uid]) {
             $(entrants[uid]).remove();
+            entrants[uid] = null;
         }
     }
     
