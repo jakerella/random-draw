@@ -13,7 +13,10 @@
         
         <input type='text' name='name' placeholder='Event Name'><br>
         <input type='text' name='path' placeholder='Unique URL path' required><br>
-        <input type='text' name='item' placeholder='Item to give away'><br>
+        <input type='text' name='item' placeholder='Item to give away'><br><br>
+        <p>If you want to provide a shortlink to your contest, enter the URL base below:</p>
+        <input type='text' name='urlBase' placeholder='i.e. "http://mydomain.com"'><br>
+        <p><em>* Note that you must also set a "BITLY_KEY" environment variable on your server!</em></p>
         
         <input type='submit' class='create' value='Create Drawing'>
     

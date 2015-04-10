@@ -1,7 +1,9 @@
 'use strict';
 
-var path = require('path'),
+var http = require('https'),
+    path = require('path'),
     crypto = require('crypto'),
+    bitlyKey = process.env.BITLY_KEY || null,
     expressApp = null,
     selectLimit = 10,
     waitingGameLength = 10000,
@@ -101,20 +103,63 @@ function createDrawing(data) {
         return socket.emit('problem', 'Are you disconnected? I don\'t have an ID for you.');
     }
     
+    data.path = (data.path || '').replace(/^\//, '');
     if (!data.path) {
         return socket.emit('problem', 'Please provide a URL path for entrants to use.');
     }
-    data.path = data.path.replace(/^\//, '');
+    if (data.path === 'setup') {
+        return socket.emit('problem', 'Looks like you are trying to override the /setup path... silly rabbit.');
+    }
     
     if (drawings[data.path]) {
         return socket.emit('problem', 'There is already a drawing at that URL!');
     }
     
+    if (data.urlBase && !bitlyKey) {
+        return socket.emit('problem', 'No bit.ly API key is set on this server, so I cannot shorten the join URL.');
+    }
+    
+    if (data.urlBase) {
+        
+        http.get('https://api-ssl.bitly.com/v3/shorten?access_token=' + bitlyKey + '&longUrl=' + encodeURIComponent(data.urlBase + '/' + data.path), function(res) {
+            if (res.statusCode < 300) {
+                var body = '';
+                res.setEncoding('utf8');
+                res.on('data', function (chunk) {
+                    body += chunk;
+                });
+                res.on('end', function (chunk) {
+                    try {
+                        
+                        data.joinUrl = JSON.parse(body).data.url;
+                        doCreate(socket, data);
+                        
+                    } catch(err) {
+                        return socket.emit('problem', 'Unable to shorten URL, unexpected response from bit.ly: ' + body);
+                    }
+                });
+            } else {
+                return socket.emit('problem', 'Unable to shorten URL, unexpected status code from bit.ly: ' + res.statusCode);
+            }
+        }).on('error', function(err) {
+            return socket.emit('problem', 'Unable to shorten URL: ' + err.message);
+        });
+        
+    } else {
+        
+        data.joinUrl = null;
+        doCreate(socket, data);
+    }
+    
+}
+
+function doCreate(socket, data) {
     drawings[data.path] = {
         admin: data.uid,
         name: data.name || null,
         path: data.path,
         item: data.item || null,
+        joinUrl: data.joinUrl || null,
         entrants: {}
     };
     
@@ -228,7 +273,7 @@ function resetContest(data) {
 }
 
 function deleteContest(data) {
-    var contest, keys,
+    var contest,
         socket = this;
     
     data = data || {};
@@ -241,7 +286,31 @@ function deleteContest(data) {
         return socket.emit('problem', 'You have no power here.');
     }
     
-    keys = Object.keys(contest.entrants);
+    if (contest.joinUrl) {
+    
+        http.get('https://api-ssl.bitly.com/v3/user/link_edit?edit=archived&archived=true&access_token=' + bitlyKey + '&link=' + encodeURIComponent(contest.joinUrl), function(res) {
+            if (res.statusCode < 400) {
+                
+                doDelete(socket, contest);
+                
+            } else {
+                console.error('Unable to archive bit.ly link: ' + res.statusCode, contest.joinUrl);
+                socket.emit('problem', 'Unable to archive bit.ly link: ' + res.statusCode);
+                doDelete(socket, contest);
+            }
+        }).on('error', function(err) {
+            console.error('Error trying to archive bit.ly link: ' + err.message, contest.joinUrl);
+            socket.emit('problem', 'Error trying to archive bit.ly link: ' + err.message);
+            doDelete(socket, contest);
+        });
+        
+    } else {
+        doDelete(socket, contest);
+    }
+}
+
+function doDelete(socket, contest) {
+    var keys = Object.keys(contest.entrants);
     
     keys.forEach(function(uid) {
         users[uid].socket.emit('problem', 'This drawing has closed!');
@@ -262,7 +331,10 @@ function checkForAdmin(data) {
     contest = drawings[data.path];
     isAdmin = data.uid && data.path && contest && contest.admin === data.uid;
     
-    socket.emit('isadmin', isAdmin);
+    socket.emit('isadmin', {
+        isAdmin: isAdmin,
+        contest: contest
+    });
     
     if (isAdmin) {
         for (uid in contest.entrants) {

@@ -48,6 +48,7 @@ body.entered {
 form {
     margin: 4em auto;
     z-index: 2;
+    text-align: center;
 }
 input {
     width: 80%;

@@ -56,7 +56,8 @@ window.rdw = (function(app, $, AudioContext) {
                 uid: uid,
                 name: $('[name="name"]').val(),
                 path: $('[name="path"]').val(),
-                item: $('[name="item"]').val()
+                item: $('[name="item"]').val(),
+                urlBase: $('[name="urlBase"]').val()
             });
             return false;
         });
@@ -124,24 +125,29 @@ window.rdw = (function(app, $, AudioContext) {
     }
     
     function initDraw() {
-        var entryUrl = document.location.href.replace(/\/draw\/?$/, ''),
-            contest = document.location.pathname
-            .replace(/\/draw\/?$/, '')
-            .replace(/^\//, '');
-        
-        $('.entry-url')
-            .attr('href', entryUrl)
-            .text(entryUrl);
+        var contest = null,
+            entryUrl = document.location.href.replace(/\/draw\/?$/, ''),
+            contestPath = document.location.pathname
+                .replace(/\/draw\/?$/, '')
+                .replace(/^\//, '');
         
         socket.on('userinfo', function() {
             socket.emit('isadmin', {
                 uid: uid,
-                path: contest
+                path: contestPath
             });
             
-            socket.once('isadmin', function(isAdmin) {
-                if (isAdmin) {
+            socket.once('isadmin', function(data) {
+                if (data.isAdmin) {
+                    
                     ui.drawBtn.css('display', 'inline-block');
+                    contest = data.contest;
+                    entryUrl = (contest && contest.joinUrl) || entryUrl;
+                    
+                    $('.entry-url')
+                        .attr('href', entryUrl)
+                        .text(entryUrl);
+                    
                 } else {
                     addMessage('You\'re not an admin, so this page is pretty useless.');
                 }
@@ -152,7 +158,7 @@ window.rdw = (function(app, $, AudioContext) {
             e.preventDefault();
             socket.emit('draw', {
                 uid: uid,
-                path: contest
+                path: contestPath
             });
         });
         
@@ -181,7 +187,7 @@ window.rdw = (function(app, $, AudioContext) {
             e.preventDefault();
             socket.emit('reset', {
                 uid: uid,
-                path: contest
+                path: contestPath
             });
         });
         
@@ -189,7 +195,7 @@ window.rdw = (function(app, $, AudioContext) {
             e.preventDefault();
             socket.emit('delete', {
                 uid: uid,
-                path: contest
+                path: contestPath
             });
         });
         
