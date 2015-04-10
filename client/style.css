@@ -42,6 +42,7 @@ body.entered {
     border-radius: 15px;
     cursor: help;
     z-index: -1;
+    box-shadow: -2px -1px 3px #333;
 }
 
 
@@ -97,24 +98,16 @@ input {
 }
 
 @-webkit-keyframes pulse {
-  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
-  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
-  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { transform: scale(3); }
 }
 @-moz-keyframes pulse {
-  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
-  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
-  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { transform: scale(3); }
 }
 @-o-keyframes pulse {
-  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
-  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
-  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { transform: scale(3); }
 }
 @keyframes pulse {
-  0%   { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
-  50%  { width: 100px; height: 100px; -moz-border-radius: 50px; -webkit-border-radius: 50px; border-radius: 50px; }
-  100% { width: 30px; height: 30px; -moz-border-radius: 15px; -webkit-border-radius: 15px; border-radius: 15px; }
+  50%  { transform: scale(3); }
 }
 figure.winner {
     -webkit-animation: pulse 2s ease-in-out infinite;
@@ -128,7 +121,7 @@ figure.winner {
     top: 0.5em;
     right: 1em;
     text-align: right;
-    font-size: 1.7em;
+    font-size: 2em;
 }
 .entry-url:link, .entry-url:visited {
     color: #090;
@@ -138,9 +131,15 @@ figure.winner {
     position: absolute;
     bottom: 0.5em;
     right: 1em;
-    font-size: 1em;
+    font-size: 1.5em;
 }
-
+.actions :link {
+    text-decoration: none;
+    color: #66f;
+}
+.actions :hover {
+    text-decoration: underline;
+}
 
 .messages {
     font-size: 1.5em;
